@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ひるめしえらんで</title>
+    <style>
+        /* 和風で親しみやすいデザインに調整 */
+        body { font-family: 'Hiragino Kaku Gothic ProN', sans-serif; text-align: center; background: #f9f1e6; padding: 30px; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: inline-block; width: 360px; border: 4px solid #d9534f; }
+        h2 { color: #d9534f; margin-bottom: 20px; font-size: 24px; }
+        #omikuji-box { font-size: 100px; cursor: pointer; margin: 20px 0; transition: transform 0.1s; }
+        .shake { animation: shake 0.5s infinite; }
+        @keyframes shake {
+            0% { transform: rotate(0deg); } 25% { transform: rotate(8deg); }
+            50% { transform: rotate(0deg); } 75% { transform: rotate(-8deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .mode-selector { margin-bottom: 20px; }
+        .mode-btn { border: 2px solid #d9534f; padding: 8px 18px; cursor: pointer; background: white; border-radius: 20px; font-size: 14px; margin: 0 5px; color: #d9534f; font-weight: bold; }
+        .active-mode { background: #d9534f; color: white; }
+        #result-area { display: none; background: #fffcf0; border: 2px dashed #f0ad4e; padding: 20px; border-radius: 15px; margin-top: 20px; }
+        .btn { background: #4285F4; color: white; border: none; padding: 14px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; margin-top: 15px; }
+        .lucky-item { color: #e67e22; font-weight: bold; font-size: 0.95em; margin-top: 10px; }
+        #hint { font-size: 14px; color: #888; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>ひるめしえらんで</h2>
+
+    <div class="mode-selector">
+        <button id="normal-btn" class="mode-btn active-mode" onclick="setMode('normal')">みせをえらぶ</button>
+        <button id="conveni-btn" class="mode-btn" onclick="setMode('conveni')">コンビニ</button>
+    </div>
+
+    <div id="omikuji-box" onclick="draw()">🍱</div>
+    <p id="hint">タップして おみくじを ふる！</p>
+
+    <div id="result-area">
+        <div id="luck" style="font-size: 20px; font-weight: bold; color: #d9534f;"></div>
+        <h2 id="food" style="margin: 10px 0;"></h2>
+        <p id="desc" style="font-size: 14px; color: #555; line-height: 1.6;"></p>
+        <div class="lucky-item">✨ラッキー買い足し: <span id="add-on"></span></div>
+        <a id="map-link" class="btn" target="_blank">近くの店をさがす</a><br>
+        <button class="btn" style="background:#aaa; margin-top:15px; font-size: 12px;" onclick="reset()">もういちど ひく</button>
+    </div>
+</div>
+
+<script>
+    let currentMode = 'normal';
+
+    const normalMenus = [
+        { luck: "大大吉", food: "特選！厚切りステーキ", keyword: "ステーキ", desc: "パワーチャージ！午後も無敵です。", add: "ガーリックライス" },
+        { luck: "大吉", food: "肉汁あふれるハンバーグ", keyword: "ハンバーグ", desc: "王道ランチ。デミグラスで決まり！", add: "目玉焼き" },
+        { luck: "大吉", food: "サクサクのえび天丼", keyword: "天丼", desc: "贅沢にいっちゃいましょう。", add: "冷やし小うどん" },
+        { luck: "中吉", food: "とろとろ卵のオムライス", keyword: "オムライス", desc: "懐かしの味でリラックス。", add: "ミニサラダ" },
+        { luck: "中吉", food: "本格スパイスカレー", keyword: "カレー", desc: "香りで脳がシャキッと目覚めます。", add: "ラッシー" },
+        { luck: "中吉", food: "濃厚こってりラーメン", keyword: "ラーメン", desc: "至高の一杯。替え玉もあり！", add: "白ごはん" },
+        { luck: "吉", food: "新鮮！海鮮丼", keyword: "海鮮丼", desc: "海の幸で、スマートに午後を。 ", add: "あおさの味噌汁" },
+        { luck: "吉", food: "パリッと餃子定食", keyword: "餃子 定食", desc: "ガッツリ食べてスタミナ満点！", add: "ザーサイ" },
+        { luck: "末吉", food: "炭火焼きの魚定食", keyword: "焼き魚定食", desc: "落ち着く美味しさです。", add: "とろろ" }
+    ];
+
+    const conveniMenus = [
+        { luck: "大大吉", food: "高級幕の内 ＆ デザート", keyword: "コンビニ", desc: "コンビニ界の王族のような贅沢を。", add: "淹れたてコーヒー" },
+        { luck: "大吉", food: "カツカレー ＆ サラダ", keyword: "コンビニ", desc: "午後への活力をチャージ！", add: "飲むヨーグルト" },
+        { luck: "中吉", food: "つけ麺 ＆ おにぎり", keyword: "コンビニ", desc: "炭水化物コンビで満腹に！", add: "からあげ棒" },
+        { luck: "中吉", food: "チーズパスタ ＆ チキン", keyword: "コンビニ", desc: "満足度が高い鉄板セット。", add: "バナナ" },
+        { luck: "吉", food: "おにぎり ＆ カップ豚汁", keyword: "コンビニ", desc: "ホッとする最強コンビ。", add: "ゆで卵" },
+        { luck: "末吉", food: "サンドイッチ ＆ スープ", keyword: "コンビニ", desc: "軽やかで栄養バランスも良し。", add: "ナッツ" }
+    ];
+
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById('normal-btn').classList.toggle('active-mode', mode === 'normal');
+        document.getElementById('conveni-btn').classList.toggle('active-mode', mode === 'conveni');
+        reset();
+    }
+
+    function draw() {
+        const box = document.getElementById('omikuji-box');
+        box.classList.add('shake');
+        document.getElementById('hint').innerText = "シャカシャカ...";
+
+        setTimeout(() => {
+            box.classList.remove('shake');
+            const list = currentMode === 'normal' ? normalMenus : conveniMenus;
+            const res = list[Math.floor(Math.random() * list.length)];
+            
+            document.getElementById('luck').innerText = `【${res.luck}】`;
+            document.getElementById('food').innerText = res.food;
+            document.getElementById('desc').innerText = res.desc;
+            document.getElementById('add-on').innerText = res.add;
+            
+            const searchKeyword = currentMode === 'conveni' ? "コンビニ" : "近くの" + res.keyword;
+            // 修正済み：${}を使って確実にURLを生成
+            const mapUrl = `https://www.google.com/maps/search/${encodeURIComponent(searchKeyword)}`;
+            
+            const linkElem = document.getElementById('map-link');
+            linkElem.href = mapUrl;
+            linkElem.innerText = currentMode === 'conveni' ? "ちかくのコンビニをさがす" : `ちかくの${res.keyword}をさがす`;
+            
+            document.getElementById('result-area').style.display = 'block';
+            box.style.display = 'none';
+            document.getElementById('hint').style.display = 'none';
+        }, 800);
+    }
+
+    function reset() {
+        document.getElementById('result-area').style.display = 'none';
+        document.getElementById('omikuji-box').style.display = 'block';
+        document.getElementById('omikuji-box').innerText = currentMode === 'normal' ? "🍱" : "🏪";
+        document.getElementById('hint').style.display = 'block';
+        document.getElementById('hint').innerText = "タップして おみくじを ふる！";
+    }
+</script>
+
+</body>
+</html>
